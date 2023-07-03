@@ -1,0 +1,91 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+void main() {
+  runApp(JsonDataApp());
+}
+
+class JsonDataApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'JSON Data App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: JsonDataScreen(),
+    );
+  }
+}
+
+class JsonDataScreen extends StatefulWidget {
+  @override
+  _JsonDataScreenState createState() => _JsonDataScreenState();
+}
+
+class _JsonDataScreenState extends State<JsonDataScreen> {
+  List<Map<String, dynamic>> _geographies = [];
+  List<Map<String, dynamic>> _provinces = [];
+  List<Map<String, dynamic>> _amphures = [];
+  List<Map<String, dynamic>> _tambons = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadJsonData();
+  }
+
+  Future<void> loadJsonData() async {
+    String geographyJson = await rootBundle.loadString('assets/thai_geographies.json');
+    String provinceJson = await rootBundle.loadString('assets/thai_provinces.json');
+    String amphureJson = await rootBundle.loadString('assets/thai_amphures.json');
+    String tambonJson = await rootBundle.loadString('assets/thai_tambons.json');
+
+    setState(() {
+      _geographies = json.decode(geographyJson)['RECORDS'].cast<Map<String, dynamic>>();
+      _provinces = json.decode(provinceJson)['RECORDS'].cast<Map<String, dynamic>>();
+      _amphures = json.decode(amphureJson)['RECORDS'].cast<Map<String, dynamic>>();
+      _tambons = json.decode(tambonJson)['RECORDS'].cast<Map<String, dynamic>>();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('JSON Data App'),
+      ),
+      body: ListView.builder(
+        itemCount: _provinces.length,
+        itemBuilder: (context, index) {
+          Map<String, dynamic> province = _provinces[index];
+          Map<String, dynamic> geography = _geographies.firstWhere(
+            (geo) => geo['id'] == province['geography_id'],
+            orElse: () => {},
+          );
+          Map<String, dynamic> amphure = _amphures.firstWhere(
+            (amphure) => amphure['province_id'] == province['id'],
+            orElse: () => {},
+          );
+          Map<String, dynamic> tambon = _tambons.firstWhere(
+            (tambon) => tambon['amphure_id'] == amphure['id'],
+            orElse: () => {},
+          );
+
+          return ListTile(
+            title: Text(province['name_th']),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Geography: ${geography['name'] ?? 'Unknown'}'),
+                Text('Amphure: ${amphure['name_th'] ?? 'Unknown'}'),
+                Text('Tambon: ${tambon['name_th'] ?? 'Unknown'}'),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
